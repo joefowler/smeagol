@@ -17,3 +17,9 @@ Then from python, activities like this:
 import smeagol
 from smeagol import Absorber, Emitter
 ```
+
+or
+
+```bash
+marimo edit example_nb.py
+```

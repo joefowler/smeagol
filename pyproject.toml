@@ -17,6 +17,7 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
+    "marimo",
     "matplotlib>1.5",
     "numpy>=2.0",
     "scipy",
