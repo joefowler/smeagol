@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=64", "setuptools-scm>=8"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "smeagol"
+dynamic = ["version"]
+description = "A short summary of what my package does"
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [
+    { name = "Joe Fowler", email = "joefowler@github.com" }
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "matplotlib>1.5",
+    "numpy>=2.0",
+    "scipy",
+    "xraydb",
+]
+
+[project.urls]
+Homepage = "https://github.com/joefowler/smeagol"
+Issues = "https://github.com/joefowler/smeagol/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools-scm]
+# Leaving this section empty activates setuptools-scm with default settings
