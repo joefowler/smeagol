@@ -83,16 +83,9 @@ class Sample:
         return transmitted
 
     def plot_mu_components(self, energy: NDArray, proportion: bool = False) -> None:
-        plt.clf()
-        Tmu = np.zeros_like(energy)
-        Tphoto = np.zeros_like(energy)
-        for e, a, frac in zip(self.elements, self.atomic_numbers, self.element_fraction):
-            mu_total = xraydb.mu_elam(e, energy) * frac * self.density
-            mu_photo = xraydb.mu_elam(e, energy, "photo") * frac * self.density
-            # mu_over_rho = xraydb.mu_elam(e, energy, "photo")
-            Tmu += mu_total
-            Tphoto += mu_photo
+        Tmu = self.total_loss_rate(energy, photo_only=False)
 
+        plt.clf()
         for e, a, frac in zip(self.elements, self.atomic_numbers, self.element_fraction):
             mu_photo = xraydb.mu_elam(e, energy, "photo") * frac * self.density
             for shell in ("K", "L1", "L2", "L3", "M1", "M2", "M3", "M4", "M5"):
@@ -106,17 +99,25 @@ class Sample:
                 y = this_mu
                 if proportion:
                     y = 100 * y / Tmu[use]
-                # if shell == "K":
                 plt.plot(energy[use], y, label=label)
                 mu_photo[use] -= this_mu
         plt.legend()
         plt.xlabel("Energy (eV)")
         if proportion:
+            Tphoto = self.total_loss_rate(energy, photo_only=True)
             plt.plot(energy, 100 * Tphoto / Tmu, "k", lw=2)
             plt.ylabel("Percent of all events at that energy (%)")
             plt.title("Percent of absorptions that cause excitation")
         else:
-            plt.ylabel(f"$\\mu$ (cm$^{-1}$)")
+            plt.ylabel("$\\mu$ (cm$^{-1}$)")
             plt.title("Attenuation rate (per cm) for all components of sample")
             plt.plot(energy, Tmu, "k", lw=2)
             plt.semilogy()
+
+    def total_loss_rate(self, energy: NDArray, photo_only: bool = False) -> NDArray:
+        kind = "total" if photo_only else "photo"
+        Tmu = np.zeros_like(energy)
+        for e, frac in zip(self.elements, self.element_fraction):
+            mu_total = xraydb.mu_elam(e, energy, kind=kind) * frac * self.density
+            Tmu += mu_total
+        return Tmu
