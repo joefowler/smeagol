@@ -1,5 +1,6 @@
 import numpy as np
 import pylab as plt
+import scipy as sp
 import xraydb
 from dataclasses import dataclass
 from numpy.typing import NDArray
@@ -121,3 +122,26 @@ class Sample:
             mu_total = xraydb.mu_elam(e, energy, kind=kind) * frac * self.density
             Tmu += mu_total
         return Tmu
+
+    def emissions(self, energy: NDArray, intensity: NDArray) -> list[tuple[str, str, float]]:
+        Tmu = self.total_loss_rate(energy)
+        # Tphoto = self.total_loss_rate(energy, photo_only=True)
+        absorption = 1 - np.exp(-Tmu * self.thickness_cm)
+        emissions: list[tuple[str, str, float]] = []
+
+        for e, frac in zip(self.elements, self.element_fraction):
+            mu_photo = xraydb.mu_elam(e, energy, "photo") * frac * self.density
+            for shell in ("K", "L1", "L2", "L3", "M1", "M2", "M3", "M4", "M5"):
+                edge = xraydb.xray_edge(e, shell)
+                if edge is None or edge.jump_ratio == 1 or np.all(energy < edge.energy):
+                    continue
+                jr = edge.jump_ratio
+                use = energy > edge.energy
+                this_mu = (jr - 1) / jr * mu_photo[use]
+                fraction = this_mu / Tmu[use]
+                mu_photo[use] -= this_mu
+
+                this_intensity = sp.integrate.simpson(fraction * absorption[use] * intensity[use], energy[use]) * edge.fyield
+                emissions.append((e, shell, float(this_intensity)))
+
+        return emissions
