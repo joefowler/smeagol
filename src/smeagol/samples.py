@@ -2,6 +2,7 @@ import numpy as np
 import pylab as plt
 import scipy as sp
 import xraydb
+from collections import defaultdict
 from dataclasses import dataclass
 from numpy.typing import NDArray
 
@@ -38,13 +39,12 @@ class Sample:
                     mass_fraction[i] = missing_frac
                     break
 
-        elements: list[str] = []
-        element_fraction: list[float] = []
+        element_fraction_dict: defaultdict[str, float] = defaultdict(lambda: 0.0)
+
         for material, mfrac in zip(materials, mass_fraction):
             assert mfrac is not None
             if is_element_symbol(material):
-                elements.append(material)
-                element_fraction.append(mfrac)
+                element_fraction_dict[material] += mfrac
             else:
                 try:
                     d = xraydb.chemparse(material)
@@ -53,8 +53,7 @@ class Sample:
                         total_mass += count * xraydb.atomic_mass(element)
                     for element, count in d.items():
                         element_mf = count * xraydb.atomic_mass(element) / total_mass
-                        elements.append(element)
-                        element_fraction.append(element_mf * mfrac)
+                        element_fraction_dict[element] += element_mf * mfrac
 
                 except ValueError:
                     assert material is not None
@@ -64,10 +63,11 @@ class Sample:
                     for element in components["elements"]:
                         count, atomic_mass, _ = components[element]
                         element_mf = count * atomic_mass / total_mass
-                        elements.append(element)
-                        element_fraction.append(element_mf * mfrac)
+                        element_fraction_dict[element] += element_mf * mfrac
 
+        elements = list(element_fraction_dict.keys())
         atomic_numbers = [xraydb.atomic_number(s) for s in elements]
+        element_fraction = list(element_fraction_dict.values())
         return cls(materials, mass_fraction, thickness_cm, density, elements, atomic_numbers, element_fraction)
 
     def attenuation(self, energy: NDArray | float) -> NDArray | float:
