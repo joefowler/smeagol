@@ -145,3 +145,28 @@ class Sample:
                 emissions.append((e, shell, float(this_intensity)))
 
         return emissions
+
+    def emission_spectrum(self, energy: NDArray, intensity: NDArray) -> NDArray:
+        emissions = self.emissions(energy, intensity)
+        s = np.zeros_like(energy, dtype=float)
+        plt.clf()
+        for element, shell, A in emissions:
+            sshell = np.zeros_like(energy, dtype=float)
+            lower_width = float(xraydb.core_width(element, shell))  # type: ignore
+            for _linename, line in xraydb.xray_lines(element, shell).items():
+                lineE = line.energy
+                final_level = line.final_level
+                if "," in final_level:
+                    final_level = final_level.split(",")[0]
+                try:
+                    width = lower_width + float(xraydb.core_width(element, final_level))  # type: ignore
+                except KeyError:
+                    width = lower_width
+                gamma = width * 0.5
+                print(element, shell, _linename, A * line.intensity)
+
+                this = A * line.intensity / (np.pi * gamma * (1 + ((energy - lineE) / gamma) ** 2))
+                sshell += this
+            s += sshell
+            plt.semilogy(energy / 1e3, sshell, label=f"{element} {shell}")
+        return s
